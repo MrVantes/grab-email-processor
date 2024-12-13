@@ -32,6 +32,14 @@ The script automatically reads Grab email receipts, extracts information such as
 
 ## Setup Instructions
 
+### The Expected Table
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/5ae69294-f2a0-4c2d-a717-4635ad5354f0" alt="Expected Table">
+</div>
+
+- PIC: Person in Charge
+
 ### Prerequisites
 
 - A **Google Cloud** account with access to Google Apps Script.
