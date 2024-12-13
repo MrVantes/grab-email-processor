@@ -5,7 +5,18 @@ This repository contains a script designed to process emails from a specific sen
 ## Iterations
 
 - For a single sheet (use Mapping on column) = script-grab.js
-- For multiple sheet (use Mapping on SheetName) = mscript-grab.js (UNRELEASED)
+- For multiple sheet (use Mapping on SheetName) = mscript-grab.js
+- Here is the map to be changed for now its month 12 -> column 11 and so on.
+
+```
+const map = new Map([
+  [12, 11],
+  [1, 20],
+  [2, 29],
+  [3, 38],
+  [4, 47],
+]);
+```
 
 ## Purpose
 
