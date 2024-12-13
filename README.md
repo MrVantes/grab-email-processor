@@ -20,7 +20,7 @@ const map = new Map([
 
 ## Purpose
 
-The script automatically reads Grab email receipts, extracts information such as the total amount paid, location details, and the type of service used (e.g., "Work" or "Leisure"), and stores this data into a Google Spreadsheet. It is particularly useful for those who wish to track Grab transactions in a more automated way without manually logging each transaction.
+The script automatically reads Grab email receipts, extracts information such as the total amount paid, location details, and what is it used for (e.g., "Work" or "Leisure"), and stores this data into a Google Spreadsheet. It is particularly useful for those who wish to track Grab transactions in a more automated way without manually logging each transaction.
 
 ## Key Features
 
