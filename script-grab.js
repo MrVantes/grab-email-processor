@@ -133,6 +133,8 @@ function getEmailsFromSpecificSenderToday() {
             "PaymentMethod",
             "Person"
           );
+        } else {
+          thread.moveToTrash();
         }
       });
 
