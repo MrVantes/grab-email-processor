@@ -1,21 +1,42 @@
 function getEmailsFromSpecificSenderToday() {
-  const senderEmail = "your-email@example.com";
+  const senderEmail = "no-reply@example.com"; // Replace with generic email
   const today = new Date();
   const timezone = "GMT+7";
+
   const formattedDate = Utilities.formatDate(
     new Date(today.getFullYear(), today.getMonth(), today.getDate()),
     timezone,
     "yyyy/MM/dd"
   );
-  Logger.log("Today's Date: " + formattedDate);
+
+  const todayBandung = new Date(formattedDate);
+
+  const months = [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC",
+  ];
+  const month = months[todayBandung.getMonth()];
 
   const query = `from:${senderEmail} after:` + formattedDate;
+
   const threads = GmailApp.search(query);
   Logger.log("Threads found: " + threads.length);
 
-  const sheet = SpreadsheetApp.openById("YOUR_SPREADSHEET_ID").getSheetByName(
-    "YOUR_SHEET_NAME"
-  );
+  let addRow = 0;
+
+  const sheet = SpreadsheetApp.openById(
+    "your-spreadsheet-id" // Replace with actual ID
+  ).getSheetByName(`${month} ${todayBandung.getFullYear()}`);
 
   if (threads.length === 0) {
     const date = Utilities.formatDate(
@@ -24,36 +45,39 @@ function getEmailsFromSpecificSenderToday() {
       "MM/dd/yyyy"
     );
     findAndEnterData(
+      sheet,
       date,
       0,
       1,
       "Work",
-      "Location1",
-      "Location2",
+      "GenericLocation1",
+      "GenericLocation2",
       "N/A",
       "N/A",
       "N/A"
     );
     findAndEnterData(
+      sheet,
       date,
       0,
       0,
       "Work",
-      "Location2",
-      "Location1",
+      "GenericLocation2",
+      "GenericLocation1",
       "N/A",
       "N/A",
       "N/A"
     );
   } else {
     threads.forEach((thread) => {
-      const messages = thread.getMessages();
+      // Get the messages and reverse the order
+      const messages = thread.getMessages().reverse();
 
       messages.forEach((message) => {
-        const sender = message.getFrom();
-        const subject = message.getSubject();
-        const date = message.getDate();
-        const body = message.getPlainBody();
+        var sender = message.getFrom();
+        var subject = message.getSubject();
+        var date = message.getDate();
+        var body = message.getPlainBody();
         const formattedEmailDate = Utilities.formatDate(
           date,
           timezone,
@@ -66,34 +90,48 @@ function getEmailsFromSpecificSenderToday() {
         );
         Logger.log(formattedEmailTime);
 
-        if (body.startsWith(" Grab E-Receipt")) {
+        if (body.startsWith("Receipt")) {
           const money = extractTotalPaidAmountFromEmail(body);
           const location = extractLocationFromEmail(body);
           const loc1 = simplifyText(location[0]);
           const loc2 = simplifyText(location[1]);
-          const car = simplifyText(extractGrabFromEmail(body));
-          const type =
-            ["Location1", "Location2", "Location3"].includes(loc1) &&
-            ["Location1", "Location2", "Location3"].includes(loc2)
-              ? "Work"
-              : "Leisure";
-
+          const car = simplifyText(extractCarFromEmail(body));
+          let type;
+          if (
+            [
+              "GenericLocation1",
+              "GenericLocation2",
+              "GenericLocation3",
+            ].includes(loc1) &&
+            [
+              "GenericLocation1",
+              "GenericLocation2",
+              "GenericLocation3",
+            ].includes(loc2)
+          ) {
+            type = "Work";
+          } else {
+            addRow += 1;
+            type = "Leisure";
+          }
           const isMorning = formattedEmailTime < "12:00:00";
-          const add = isMorning ? 0 : 1;
+          const add = type === "Leisure" ? 1 : isMorning ? 0 : 1;
 
           Logger.log(isMorning ? "Morning" : "Afternoon");
+          Logger.log(add + addRow);
 
           // Find and enter the data
           findAndEnterData(
+            sheet,
             formattedEmailDate,
             money,
-            add,
+            add + addRow,
             type,
             loc1,
             loc2,
             car,
-            "CardName",
-            "PersonName"
+            "PaymentMethod",
+            "Person"
           );
         }
       });
@@ -108,13 +146,13 @@ function getEmailsFromSpecificSenderToday() {
 const extractFromEmail = (body, regex, processMatch = (match) => match[1]) =>
   body.match(regex) ? processMatch(body.match(regex)) : -1;
 
-const extractGrabFromEmail = (body) =>
-  extractFromEmail(body, /Grab E-Receipt[\s\S]*?\n([^\n]+)/);
+const extractCarFromEmail = (body) =>
+  extractFromEmail(body, /Receipt[\s\S]*?\n([^\n]+)/);
 
 const extractTotalPaidAmountFromEmail = (body) =>
   extractFromEmail(
     body,
-    /Total Paid[\s\S]*?RP (\d+)\.(\d+)/,
+    /Total Paid[\s\S]*?Amount (\d+)\.(\d+)/,
     (match) => match[1] + match[2]
   );
 
@@ -134,6 +172,7 @@ const map = new Map([
 ]);
 
 function findAndEnterData(
+  sheet,
   targetDate,
   money,
   add,
@@ -146,14 +185,11 @@ function findAndEnterData(
 ) {
   const today = new Date(targetDate);
   today.setHours(0, 0, 0, 0);
-  const col = map.get(today.getMonth() + 1);
-  const addParsed = Math.round(parseFloat(add));
+  const col = 2; // map.get(today.getMonth() + 1); Get the column based on the month
+  const addParsed = Math.round(parseFloat(add)); // Parse and round add once
 
   Logger.log("Finding...");
 
-  const sheet = SpreadsheetApp.openById("YOUR_SPREADSHEET_ID").getSheetByName(
-    "YOUR_SHEET_NAME"
-  );
   const data = sheet.getRange(1, col, sheet.getLastRow()).getValues();
 
   // Loop through the data and compare dates
@@ -164,17 +200,32 @@ function findAndEnterData(
       if (cellDate === today.getTime()) {
         const row = i + 1 + addParsed;
         Logger.log(`Found today's date in row ${row}`);
-        enterDataInColumns(sheet, row, col, [
-          money,
-          type,
-          place1,
-          place2,
-          car,
-          card,
-          people,
-        ]);
-        Logger.log("Inserted data");
-        return;
+        if (type === "Work") {
+          enterDataInColumns(sheet, row, col, [
+            money,
+            type,
+            place1,
+            place2,
+            car,
+            card,
+            people,
+          ]);
+          Logger.log("Inserted data");
+          return;
+        } else {
+          copyAndInsertRow(sheet, row, col);
+          enterDataInColumns(sheet, row, col, [
+            money,
+            type,
+            place1,
+            place2,
+            car,
+            card,
+            people,
+          ]);
+          Logger.log("Inserted data");
+          return;
+        }
       }
     }
   }
@@ -186,13 +237,50 @@ function enterDataInColumns(sheet, row, dateColumn, dataToEnter) {
     .setValues([dataToEnter]);
 }
 
+function copyAndInsertRow(sheet, targetRow, startColumn) {
+  const endColumn = startColumn + 7;
+
+  if (targetRow <= 1) {
+    throw new Error("No row above the target row to copy.");
+  }
+
+  const rowToCopy = sheet
+    .getRange(targetRow - 1, startColumn, 1, endColumn - startColumn + 1)
+    .getValues()[0];
+  sheet.insertRowBefore(targetRow);
+  sheet
+    .getRange(targetRow, startColumn, 1, endColumn - startColumn + 1)
+    .setValues([rowToCopy]);
+
+  const formatRange = sheet.getRange(
+    targetRow - 1,
+    startColumn,
+    1,
+    endColumn - startColumn + 1
+  );
+  const newRowRange = sheet.getRange(
+    targetRow,
+    startColumn,
+    1,
+    endColumn - startColumn + 1
+  );
+
+  formatRange.copyFormatToRange(
+    sheet,
+    startColumn,
+    endColumn,
+    targetRow,
+    targetRow
+  );
+}
+
 function simplifyText(text) {
   const simplifications = {
-    "Location1 Full Name": "Location1",
-    "Location2 Full Name": "Location2",
-    "Location3 Full Name": "Location3",
-    ServiceA: "ServiceA",
-    ServiceB: "ServiceB",
+    "Location A": "GenericLocation1",
+    "Location B": "GenericLocation2",
+    "Location C": "GenericLocation3",
+    "CarService X": "CarService",
+    "CarService Y": "CarService",
   };
-  return simplifications[text] || "N/A";
+  return simplifications[text] || "New Place";
 }
