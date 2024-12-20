@@ -4,19 +4,33 @@ This repository contains a script designed to process emails from a specific sen
 
 ## Iterations
 
-- For a single sheet (use Mapping on column) = script-grab.js
-- For multiple sheet (use Mapping on SheetName) = mscript-grab.js
-- Here is the map to be changed for now its month 12 -> column 11 and so on.
+- For multiple sheet (use Mapping on SheetName = 'DEC 2024')
 
+ ```js
+const months = [
+  "JAN",
+  "FEB",
+  "MAR",
+  "APR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AUG",
+  "SEP",
+  "OCT",
+  "NOV",
+  "DEC",
+];
+
+const month = months[todayBandung.getMonth()];
+const query = `from:${senderEmail} after:` + formattedDate;
+const threads = GmailApp.search(query);
+const sheet = SpreadsheetApp.openById(
+  "1S_fZrHjUgPCfyGTPHtk3WCVrk_rAj6cB_VrrVkNz1LI"
+).getSheetByName(`${month} ${todayBandung.getFullYear()}`);
 ```
-const map = new Map([
-  [12, 11],
-  [1, 20],
-  [2, 29],
-  [3, 38],
-  [4, 47],
-]);
-```
+
+
 
 ## Purpose
 
